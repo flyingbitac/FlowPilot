@@ -93,6 +93,29 @@ Set the Fixed Frame to `world` in RViz and use `2D Nav Goal` to send a target. T
 python docker/docker.py stop
 ```
 
+## Phase-2 trajectory and future-video comparison
+
+**Phase 1 is a training intermediate and is not used for evaluation.** Both Flightmare trajectory collection and future-video prediction use the Phase-2 checkpoint (`ckpt/phase2/ckpt_final.pt`). A Phase-1 checkpoint is not required by any evaluation script.
+
+Inside the simulation container, collect a trajectory and replay a window with Phase 2:
+
+```bash
+python scripts/collect_phase2_trajectory.py
+python scripts/replay_phase2_comparison.py --start-time 0.0
+```
+
+The collector saves 30 Hz states, goals, waypoints, and grayscale depth frames to `runs/phase2_replay/trajectory.npz`; RGB images are not collected. The replay script uses the recorded state/goal at the condition frame and decodes the Phase-2 video latent with the Wan2.2 VAE.
+
+The output `runs/phase2_replay/comparison.png` contains two rows and nine columns: ground-truth depth on top and Phase-2 predictions below. Columns cover 0 to 1.6 seconds at 0.2-second intervals. The first column is the observed condition frame, followed by eight generated future frames. To evaluate another trajectory time:
+
+```bash
+python scripts/replay_phase2_comparison.py \
+    --start-time 2.0 \
+    --output runs/phase2_replay/comparison_t2.0s.png
+```
+
+These two scripts do not require ROS or RViz. Use `--help` for scene, goal, duration, checkpoint, and device options.
+
 ## Configuration
 
 Runtime parameters, including the model paths, scene id, tree spacing, and depth noise, are in `configs/runtime/rviz.py`. Model files outside the repository are mounted read-only at the same path by `docker/docker.py start`.

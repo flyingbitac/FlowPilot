@@ -94,6 +94,29 @@ python docker/docker.py run
 python docker/docker.py stop
 ```
 
+## Phase-2 轨迹采集与未来图像对比
+
+**Phase 1 只是训练中间产物，不用于评测。** Flightmare 轨迹采集和未来图像预测统一使用 Phase-2 checkpoint（`ckpt/phase2/ckpt_final.pt`），所有评测脚本都不需要 Phase-1 checkpoint。
+
+在仿真容器内采集一条轨迹，并使用 Phase 2 回放其中一个时间窗口：
+
+```bash
+python scripts/collect_phase2_trajectory.py
+python scripts/replay_phase2_comparison.py --start-time 0.0
+```
+
+采集脚本将 30 Hz 的状态、目标、轨迹点和灰度深度图保存到 `runs/phase2_replay/trajectory.npz`，不采集 RGB 图像。回放脚本使用条件帧对应的 state/goal，并通过 Wan2.2 VAE 解码 Phase-2 的 video latent。
+
+输出的 `runs/phase2_replay/comparison.png` 为两行九列：上排是真实深度图，下排是 Phase-2 预测结果。各列覆盖 0～1.6 秒，间隔为 0.2 秒；第一列是观测条件帧，后八列是生成的未来帧。选择其他轨迹时间节点：
+
+```bash
+python scripts/replay_phase2_comparison.py \
+    --start-time 2.0 \
+    --output runs/phase2_replay/comparison_t2.0s.png
+```
+
+这两个脚本不依赖 ROS 或 RViz。场景、目标、轨迹时长、checkpoint 和设备等选项可通过 `--help` 查看。
+
 ## 配置说明
 
 模型路径、场景编号、树木间距和深度噪声等运行参数都在 `configs/runtime/rviz.py` 中。仓库外的模型文件会由 `docker/docker.py start` 以只读方式挂载到容器内的同一路径。
